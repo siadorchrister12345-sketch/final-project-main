@@ -1,0 +1,707 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>GearVault - Tech & Audio Inventory & Build Manager</title>
+    <link rel="stylesheet" href="style.css">
+    <script>
+        (function () {
+            try {
+                var settings = JSON.parse(localStorage.getItem('gearVault_settings') || '{}');
+                if (settings && settings.darkMode === true) {
+                    document.documentElement.setAttribute('data-theme', 'dark');
+                }
+            } catch (e) {}
+        })();
+    </script>
+</head>
+<body class="auth-page">
+    <a class="skip-link" href="#main-content">Skip to main content</a>
+
+    <div class="app-container">
+        <button type="button" id="mobile-menu-toggle" class="mobile-menu-toggle" aria-expanded="false" aria-controls="sidebar-nav" aria-label="Open navigation">☰ <span>GearVault</span></button>
+        <button type="button" id="mobile-menu-backdrop" class="mobile-menu-backdrop" aria-label="Close navigation" tabindex="-1"></button>
+        <!-- Sidebar Navigation -->
+        <aside class="sidebar" id="sidebar-nav" aria-label="GearVault navigation">
+            <div class="brand">
+                <div class="brand-lockup">
+                    <span class="brand-mark-large" aria-hidden="true">G</span>
+                    <div>
+                        <h2>GearVault</h2>
+                        <p>Computer Parts · Track · Upgrade</p>
+                    </div>
+                </div>
+            </div>
+            <nav class="nav-menu">
+                <a href="#" class="nav-link active" data-target="dashboard-view"><span class="nav-icon">▦</span><span>Dashboard</span></a>
+                <a href="#" class="nav-link" data-target="inventory-view"><span class="nav-icon">▣</span><span>My Inventory</span></a>
+                <a href="#" class="nav-link" data-target="wishlist-view"><span class="nav-icon">♥</span><span>Wishlist</span></a>
+                <a href="#" class="nav-link" data-target="projects-view"><span class="nav-icon">☷</span><span>Projects &amp; Tasks</span></a>
+                <a href="#" class="nav-link" data-target="builder-tools-view"><span class="nav-icon">⌁</span><span>Build &amp; Audio Tools</span></a>
+                <a href="#" class="nav-link" data-target="analytics-view"><span class="nav-icon">▥</span><span>Analytics</span></a>
+                <a href="#" class="nav-link" data-target="settings-view"><span class="nav-icon">⚙</span><span>Settings</span></a>
+                <a href="#" class="nav-link logout-link" id="logout-btn"><span class="nav-icon">↪</span><span>Log out</span></a>
+            </nav>
+            <div class="sidebar-account">
+                <div class="avatar" aria-hidden="true"><span id="account-initial">J</span></div>
+                <div>
+                    <small>Signed in as</small>
+                    <strong id="sidebar-user-name">Juan Dela Cruz</strong>
+                </div>
+            </div>
+        </aside>
+
+        <!-- Main Content Area -->
+        <main class="main-content" id="main-content">
+
+            <!-- 1. DASHBOARD VIEW -->
+            <section id="dashboard-view" class="view-section">
+                <div class="welcome-banner">
+                    <div class="welcome-copy">
+                        <span class="welcome-status">YOUR PC BUILD, AT A GLANCE</span>
+                        <h2>Welcome Back, <span id="user-display-name">User</span>!</h2>
+                        <p>Build. Track. Upgrade. Your ultimate PC companion.</p>
+                    </div>
+                    <div class="welcome-art" role="img" aria-label="Gaming PC setup"></div>
+                </div>
+
+
+                <div class="stats-grid">
+                    <div class="stat-card stat-total-card">
+                        <span class="stat-icon" aria-hidden="true">⬡</span>
+                        <div><h3>Total Items</h3><p id="stat-total">0</p></div>
+                    </div>
+                    <div class="stat-card stat-owned-card">
+                        <span class="stat-icon" aria-hidden="true">♥</span>
+                        <div><h3>Owned</h3><p id="stat-owned">0</p></div>
+                    </div>
+                    <div class="stat-card stat-wishlist-card">
+                        <span class="stat-icon" aria-hidden="true">▣</span>
+                        <div><h3>Wishlist</h3><p id="stat-wishlist">0</p></div>
+                    </div>
+                    <div class="stat-card stat-value-card">
+                        <span class="stat-icon" aria-hidden="true">₱</span>
+                        <div><h3>Total Value</h3><p id="stat-value">₱0.00</p></div>
+                    </div>
+                </div>
+
+                <div class="dashboard-controls">
+                    <span style="color:var(--muted);">Do you have a wishlist or own gear? Add here.</span>
+                    <button id="open-modal-btn" class="primary-btn">+ Add New Gear</button>
+                </div>
+
+                <div class="dashboard-widgets dashboard-reference-grid">
+                    <div class="widget-box inventory-display-widget">
+                        <div class="widget-heading-row"><h3>My Inventory</h3><span class="dashboard-label">YOUR GEAR</span></div>
+                        <div id="inventory-display-card" class="featured-gear-card">
+                            <div class="featured-gear-placeholder">No gear yet</div>
+                        </div>
+                    </div>
+                    <div class="widget-box inventory-summary-widget">
+                        <h3><span class="heading-mark" aria-hidden="true">▥</span> Gear &amp; Project Overview</h3>
+                        <div class="category-chart-layout">
+                            <div id="category-chart" class="category-chart" aria-label="Gear and project breakdown"><span id="overview-total">0</span><small>Tracked</small></div>
+                            <div id="category-breakdown-list" class="category-legend">No data recorded yet.</div>
+                        </div>
+                        <div class="summary-stats">
+                            <p>Owned Budget <strong id="summary-owned-budget">₱0.00</strong></p>
+                            <p>Wishlist Total <strong id="summary-wishlist-total">₱0.00</strong></p>
+                        </div>
+                        <div class="upgrade-suggestion"><span aria-hidden="true">💡</span><p><strong>Upgrade suggestion</strong><small id="dash-compat-summary">Add your gear to get a personalized tip.</small></p><span aria-hidden="true">→</span></div>
+                        <span class="sr-only" id="dash-psu-summary">0W / 650W</span>
+                    </div>
+                    <div class="widget-box quick-actions-widget">
+                        <h3><span class="heading-mark" aria-hidden="true">ϟ</span> Quick Actions</h3>
+                        <div class="quick-actions-grid">
+                            <button type="button" class="quick-action" data-dashboard-action="add-gear"><span aria-hidden="true">⬡</span>Add Gear</button>
+                            <button type="button" class="quick-action" data-dashboard-action="create-project"><span aria-hidden="true">✚</span>Create Project</button>
+                            <button type="button" class="quick-action" data-dashboard-action="open-tools"><span aria-hidden="true">▦</span>Open Tools</button>
+                            <button type="button" class="quick-action" data-dashboard-action="view-analytics"><span aria-hidden="true">▥</span>View Analytics</button>
+                        </div>
+                        <div class="pro-tip"><span aria-hidden="true">◆</span><p><strong>GearVault Pro Tips</strong><small>Keep your components clean and well maintained.</small></p></div>
+                    </div>
+                    <div class="widget-box recent-widget">
+                        <div class="widget-heading-row"><h3><span class="heading-mark" aria-hidden="true">♥</span> Recently Added to Wishlist</h3><button type="button" class="view-all-btn" data-target="wishlist-view">View All →</button></div>
+                        <div id="recent-gear-list" class="recent-gear-list"><p class="empty-dashboard-message">Your newest gear will appear here.</p></div>
+                    </div>
+
+                    <div class="widget-box wishlist-progress-widget">
+                        <h3><span class="heading-mark" aria-hidden="true">ϟ</span> Task Progress</h3>
+                        <div class="wishlist-progress-content">
+                            <div class="wishlist-progress-ring" id="wishlist-progress-ring"><span id="wishlist-progress-value">0%</span></div>
+                            <div><strong id="wishlist-progress-amount">0 <span>/ 0 tasks</span></strong><p>Stay on top of recurring maintenance.</p><small>🏆 You're on your way to your goal!</small></div>
+                        </div>
+                    </div>
+
+                    <div class="widget-box care-reminders-widget">
+                        <div class="widget-heading-row">
+                            <h3><span class="heading-mark" aria-hidden="true">◷</span> Care &amp; Warranty Reminders</h3>
+                            <button type="button" class="view-all-btn" data-target="projects-view">Manage tasks →</button>
+                        </div>
+                        <p class="care-reminders-help">Tasks due within 14 days and owned gear warranties expiring within 60 days.</p>
+                        <div id="care-reminders-list" class="care-reminders-list">
+                            <p class="empty-dashboard-message">Add a due date to a task or record a gear warranty to get reminders.</p>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- 2. MY INVENTORY VIEW -->
+            <section id="inventory-view" class="view-section">
+                <div class="section-header">
+                    <h2>My Inventory</h2>
+                    <p>View and manage all your owned gear and component specs</p>
+                </div>
+                <div class="dashboard-controls">
+                    <div class="search-bar-wrapper">
+                        <input type="text" id="inventory-search-input" placeholder="Search your inventory...">
+                        <button id="clear-inventory-search" class="icon-btn">&times;</button>
+                    </div>
+                    <select id="inventory-category-filter">
+                        <option value="All">All Categories</option>
+                        <option value="CPU">CPU</option>
+                        <option value="GPU">GPU</option>
+                        <option value="Motherboard">Motherboard</option>
+                        <option value="RAM">RAM</option>
+                        <option value="PSU">PSU</option>
+                        <option value="Audio">Audio</option>
+                        <option value="Peripherals">Peripherals</option>
+                        <option value="Monitor">Monitor</option>
+                    </select>
+                </div>
+                <div class="table-responsive">
+                    <table class="gear-table">
+                        <thead>
+                            <tr>
+                                <th>Name Items</th>
+                                <th>Category</th>
+                                <th>Price</th>
+                                <th>Condition</th>
+                                <th>Purchased</th>
+                                <th>Warranty</th>
+                                <th>Spec / Platform</th>
+                                <th>Description / Reason</th>
+                                <th>Status</th>
+                                <th>Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody id="inventory-table-body">
+                            <!-- Dynamic rows injected here -->
+                        </tbody>
+                    </table>
+                </div>
+                <button id="clear-all-btn" class="danger-btn">Clear All</button>
+            </section>
+
+            <!-- 3. WISHLIST VIEW -->
+            <section id="wishlist-view" class="view-section">
+                <div class="section-header">
+                    <h2>My Wishlist</h2>
+                    <p>Your dream upgrades and notes on why you need them</p>
+                </div>
+                <div class="gear-grid" id="wishlist-grid">
+                    <!-- Dynamic cards injected here -->
+                </div>
+                <div class="wishlist-footer">
+                    <p>Total Wishlist Items: <span id="wishlist-count">0</span></p>
+                    <button id="move-all-inventory-btn" class="secondary-btn">Move all to inventory</button>
+                </div>
+            </section>
+
+            <!-- 4. PROJECTS & TASKS VIEW -->
+            <section id="projects-view" class="view-section">
+                <div class="section-header">
+                    <h2>Build Projects & Task Queue</h2>
+                    <p>Plan PC, upgrade, repair, and speaker builds with a project brief, budget, target date, and a live materials checklist.</p>
+                </div>
+                
+                <div class="dashboard-widgets">
+                    <!-- Task Queue Widget -->
+                    <div class="widget-box">
+                        <h3>Tasks &amp; Maintenance</h3>
+                        <form id="task-form">
+                            <label class="sr-only" for="task-input">Task name</label>
+                            <input type="text" id="task-input" placeholder="e.g. Clean the computer dust filters" required>
+                            <label class="sr-only" for="task-due-date">Due date (optional)</label>
+                            <input type="date" id="task-due-date" aria-label="Due date (optional)">
+                            <label class="sr-only" for="task-repeat">Repeat schedule</label>
+                            <select id="task-repeat" aria-label="Repeat schedule">
+                                <option value="none">Does not repeat</option>
+                                <option value="weekly">Every week</option>
+                                <option value="monthly">Every month</option>
+                                <option value="quarterly">Every 3 months</option>
+                                <option value="semiannual">Every 6 months</option>
+                                <option value="yearly">Every year</option>
+                            </select>
+                            <button type="submit" class="primary-btn">Add Task</button>
+                        </form>
+                        <p class="task-schedule-help">Completing a repeating task schedules its next occurrence automatically.</p>
+                        <ul id="task-list" class="activity-list">
+                            <!-- Tasks injected here -->
+                        </ul>
+                    </div>
+
+                    <!-- Ongoing Projects Widget -->
+                    <div class="widget-box">
+                        <h3>Start a Project</h3>
+                        <form id="project-form" class="project-create-form">
+                            <div class="form-group">
+                                <label for="project-name-input">Project name</label>
+                                <input type="text" id="project-name-input" placeholder="e.g. 4L desktop speaker build" required>
+                            </div>
+                            <div class="form-group">
+                                <label for="project-type-input">Project type</label>
+                                <select id="project-type-input">
+                                    <option value="PC Build">PC Build</option>
+                                    <option value="PC Upgrade">PC Upgrade</option>
+                                    <option value="Repair">Repair</option>
+                                    <option value="Speaker / Audio Build">Speaker / Audio Build</option>
+                                    <option value="Other">Other</option>
+                                </select>
+                            </div>
+                            <div class="form-group project-description-field">
+                                <label for="project-description-input">Goal and notes</label>
+                                <textarea id="project-description-input" rows="2" placeholder="What are you building, and what should it do?"></textarea>
+                            </div>
+                            <div class="form-group">
+                                <label for="project-budget-input">Budget (₱, optional)</label>
+                                <input type="number" id="project-budget-input" min="0" step="0.01" placeholder="e.g. 25000">
+                            </div>
+                            <div class="form-group">
+                                <label for="project-target-date-input">Target date (optional)</label>
+                                <input type="date" id="project-target-date-input">
+                            </div>
+                            <button type="submit" class="primary-btn">Create Project</button>
+                        </form>
+                        <h3 class="project-list-heading">Ongoing Projects</h3>
+                        <div id="ongoing-projects-list">
+                            <!-- Ongoing projects injected here -->
+                        </div>
+                    </div>
+
+                    <!-- Completed Projects Widget -->
+                    <div class="widget-box">
+                        <h3>Completed Projects / Archives</h3>
+                        <div id="completed-projects-list">
+                            <!-- Completed projects injected here -->
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- 5. BUILD & AUDIO TOOLS VIEW (NEW) -->
+            <section id="builder-tools-view" class="view-section">
+                <div class="section-header">
+                    <h2>Build & Audio Engineering Tools</h2>
+                    <p>Plan PC power and compatibility, estimate speaker enclosure volume, and tune round or slot ports.</p>
+                </div>
+
+                <div class="dashboard-widgets">
+                    <!-- PSU Wattage Safety Calculator -->
+                    <div class="widget-box">
+                        <h3>PSU Wattage Safety Calculator</h3>
+                        <div class="form-group">
+                            <label for="psu-capacity-input">Your PSU Rating (Watts)</label>
+                            <div style="display: flex; gap: 10px;">
+                                <input type="number" id="psu-capacity-input" min="100" max="2000" value="650">
+                                <button type="button" id="save-psu-btn" class="secondary-btn">Update PSU</button>
+                            </div>
+                        </div>
+                        <p>Estimated Logged PC Draw: <strong id="psu-total-draw">0W</strong></p>
+                        <p>Remaining Safe Headroom: <strong id="psu-headroom">650W</strong></p>
+                        <p>Safety Status: <span id="psu-status-badge" class="status-pill safe">Safe</span></p>
+                        <div class="progress-track">
+                            <div id="psu-progress-fill" class="progress-fill" style="width: 0%;"></div>
+                        </div>
+                        <p style="font-size: 0.8rem; color: #7f8c8d; margin-top: 8px;">
+                            Estimate only: enter owned CPU, GPU, motherboard, and RAM wattages. Wishlist items, the PSU rating, monitors, peripherals, and audio gear are not counted.
+                        </p>
+                    </div>
+
+                    <!-- PC Component Compatibility Checker -->
+                    <div class="widget-box">
+                        <h3>PC Component Compatibility Checker</h3>
+                        <p style="font-size: 0.85rem; color: #7f8c8d; margin-bottom: 10px;">
+                            Checks owned CPU, motherboard, and RAM tags for basic conflicts. Add component wattages for a useful power estimate.
+                        </p>
+                        <ul id="compat-results-list" class="activity-list">
+                            <!-- Compatibility checks injected here -->
+                        </ul>
+                    </div>
+
+                    <!-- DIY Audio Enclosure Volume Estimator -->
+                    <div class="widget-box">
+                        <h3>Speaker Enclosure Volume Estimator</h3>
+                        <form id="enclosure-form">
+                            <div class="form-group">
+                                <label>Internal Length (cm)</label>
+                                <input type="number" id="enc-length" step="0.1" min="1" required placeholder="e.g. 24">
+                            </div>
+                            <div class="form-group">
+                                <label>Internal Width (cm)</label>
+                                <input type="number" id="enc-width" step="0.1" min="1" required placeholder="e.g. 16">
+                            </div>
+                            <div class="form-group">
+                                <label>Internal Height (cm)</label>
+                                <input type="number" id="enc-height" step="0.1" min="1" required placeholder="e.g. 12">
+                            </div>
+                            <button type="submit" class="primary-btn full-width">Calculate Volume</button>
+                        </form>
+                        <div id="enclosure-result" style="margin-top: 12px; font-size: 0.9rem;">
+                            Enter internal dimensions to compute net liters.
+                        </div>
+                    </div>
+
+                    <div class="widget-box">
+                        <h3>Speaker Port Tuning Calculator</h3>
+                        <p class="tool-help">Size a straight round or slot port from net air volume and a target frequency, or estimate tuning from an existing port.</p>
+                        <form id="port-tuning-form" class="port-tuning-form">
+                            <div class="form-group">
+                                <label for="port-calc-mode">Calculate</label>
+                                <select id="port-calc-mode">
+                                    <option value="length">Port length from target tuning</option>
+                                    <option value="frequency">Tuning from port length</option>
+                                </select>
+                            </div>
+                            <div class="form-group">
+                                <label for="port-box-volume">Net box volume (liters)</label>
+                                <input type="number" id="port-box-volume" min="0.1" step="0.1" required placeholder="e.g. 30">
+                            </div>
+                            <div class="form-group">
+                                <label for="port-shape">Port shape</label>
+                                <select id="port-shape">
+                                    <option value="round">Round</option>
+                                    <option value="slot">Slot</option>
+                                </select>
+                            </div>
+                            <div class="form-group" id="round-port-diameter-group">
+                                <label for="port-diameter">Inside diameter per port (cm)</label>
+                                <input type="number" id="port-diameter" min="0.1" step="0.1" required placeholder="e.g. 7.5">
+                            </div>
+                            <div class="form-group" id="slot-port-width-group" hidden>
+                                <label for="port-width">Inside slot width (cm)</label>
+                                <input type="number" id="port-width" min="0.1" step="0.1" placeholder="e.g. 5">
+                            </div>
+                            <div class="form-group" id="slot-port-height-group" hidden>
+                                <label for="port-height">Inside slot height (cm)</label>
+                                <input type="number" id="port-height" min="0.1" step="0.1" placeholder="e.g. 20">
+                            </div>
+                            <div class="form-group">
+                                <label for="port-count">Number of identical ports</label>
+                                <input type="number" id="port-count" min="1" max="8" step="1" value="1" required>
+                            </div>
+                            <div class="form-group" id="port-target-frequency-group">
+                                <label for="port-target-frequency">Target tuning (Hz)</label>
+                                <input type="number" id="port-target-frequency" min="10" max="200" step="0.1" placeholder="e.g. 40">
+                            </div>
+                            <div class="form-group" id="port-length-group" hidden>
+                                <label for="port-length">Physical port length per port (cm)</label>
+                                <input type="number" id="port-length" min="0.1" step="0.01" placeholder="e.g. 25">
+                            </div>
+                            <button type="submit" class="primary-btn full-width">Calculate Port</button>
+                        </form>
+                        <div id="port-tuning-result" class="port-tuning-result" aria-live="polite">
+                            Enter your net volume and port dimensions to calculate.
+                        </div>
+                        <p class="tool-footnote">Use net air volume after subtracting the driver, bracing, and port displacement; recalculate if the port changes that volume. Estimate assumes 343 m/s sound speed and a straight, non-flared port with a 0.732 × equivalent-diameter end correction. Slot ports use an equivalent circular diameter; verify the final build with measurement.</p>
+                    </div>
+                </div>
+            </section>
+
+            <!-- 6. ANALYTICS VIEW -->
+            <section id="analytics-view" class="view-section">
+                <div class="section-header">
+                    <h2>Analytics</h2>
+                    <p>Track your spending and gear statistics.</p>
+                </div>
+                <div class="stats-grid">
+                    <div class="stat-card"><h3>Total Items</h3><p id="analytics-total">0</p></div>
+                    <div class="stat-card"><h3>Owned</h3><p id="analytics-owned">0</p></div>
+                    <div class="stat-card"><h3>Wishlist</h3><p id="analytics-wishlist">0</p></div>
+                    <div class="stat-card"><h3>Avg. Price</h3><p id="analytics-avg-price">₱0.00</p></div>
+                </div>
+                <div class="dashboard-widgets">
+                    <div class="widget-box">
+                        <h3>Gear by Category Distribution</h3>
+                        <div id="analytics-category-list">No data.</div>
+                    </div>
+                    <div class="widget-box">
+                        <h3>Budget Overview</h3>
+                        <p>Owned Budget: <span id="analytics-owned-budget">₱0.00</span></p>
+                        <p>Wishlist Total: <span id="analytics-wishlist-total">₱0.00</span></p>
+                        <p><strong>Total Combined Value: <span id="analytics-total-value">₱0.00</span></strong></p>
+                        <p>Average per Item: <span id="analytics-avg-per-item">₱0.00</span></p>
+                        <p>Most Expensive: <span id="analytics-max-item">—</span></p>
+                    </div>
+                    <div class="widget-box">
+                        <h3>Ownership Breakdown</h3>
+                        <div id="analytics-ownership-list">No data.</div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- 7. SETTINGS VIEW -->
+            <section id="settings-view" class="view-section">
+                <div class="section-header">
+                    <h2>Settings</h2>
+                    <p>Manage your account and preferences.</p>
+                </div>
+                <div class="settings-card">
+                    <h3>Account Information</h3>
+                    <div class="form-group">
+                        <label>Full Name</label>
+                        <input type="text" id="settings-name">
+                    </div>
+                    <div class="form-group">
+                        <label>Email Address</label>
+                        <input type="email" id="settings-email">
+                    </div>
+                    <button id="save-account-btn" class="primary-btn">Save Changes</button>
+                </div>
+                <div class="settings-card">
+                    <h3>Preferences</h3>
+                    <label><input type="checkbox" id="dark-mode-toggle"> Dark Mode</label>
+                    <label><input type="checkbox" id="notifications-toggle" checked> Notifications</label>
+                </div>
+                <div class="settings-card">
+                    <h3>Data Management</h3>
+                    <p class="settings-help">Your data is saved in this browser only. Download a backup before clearing browser data or moving to another device.</p>
+                    <button id="export-btn" class="secondary-btn">Export Inventory</button>
+                    <button id="backup-export-btn" class="secondary-btn">Download Full Backup</button>
+                    <button id="backup-import-btn" class="secondary-btn">Restore from Backup</button>
+                    <input type="file" id="backup-file-input" accept="application/json,.json" hidden>
+                    <button id="settings-clear-btn" class="danger-btn">Clear All Data</button>
+                </div>
+            </section>
+
+            <!-- 8. LOGIN / SIGNUP VIEW -->
+            <section id="login-view" class="view-section active">
+                <div class="landing-hero" id="landing-hero">
+                    <header class="landing-nav">
+                        <a class="landing-brand" href="#landing-hero" aria-label="GearVault home"><span class="brand-mark" aria-hidden="true">G</span>GearVault</a>
+                        <nav class="landing-links" aria-label="Main navigation">
+                            <a href="#" id="contact-link">Contact</a>
+                        </nav>
+                    </header>
+
+                    <div class="landing-main">
+                        <div class="landing-intro">
+                            <span class="landing-eyebrow">YOUR GEAR. YOUR NEXT BUILD.</span>
+                            <h1>Build your setup.<br><span>Keep it in control.</span></h1>
+                            <p>Track your computer parts, plan upgrades, and manage your build<br class="desktop-break"> all in one place.</p>
+                        </div>
+
+                        <div class="landing-auth" id="landing-auth" data-mode="login">
+                            <div class="auth-panel">
+                                <div class="auth-box active" id="login-box" role="tabpanel" aria-label="Log in">
+                                    <h2 id="login-title">Log In</h2>
+                                    <p>Welcome back to GearVault</p>
+                                    <form id="login-form">
+                                        <div class="form-group">
+                                            <label class="sr-only" for="login-email">Email or Username</label>
+                                            <span class="field-icon" aria-hidden="true"><svg viewBox="0 0 24 24" width="18" height="18"><path d="M3 5.5h18v13H3zM3 6l9 7 9-7" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg></span>
+                                            <input type="text" id="login-email" placeholder="Email or Username" required>
+                                        </div>
+                                        <div class="form-group">
+                                            <label class="sr-only" for="login-pass">Password</label>
+                                            <span class="field-icon" aria-hidden="true"><svg viewBox="0 0 24 24" width="18" height="18"><rect x="4.5" y="10" width="15" height="10" rx="2" fill="none" stroke="currentColor" stroke-width="1.8"/><path d="M7.5 10V7.5a4.5 4.5 0 0 1 9 0V10" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg></span>
+                                            <input type="password" id="login-pass" placeholder="Password" required>
+                                        </div>
+                                        <button type="submit" class="primary-btn full-width">Log in</button>
+                                    </form>
+                                    <p class="auth-switch">Don't have an account? <a href="#" id="to-signup">Sign up</a></p>
+                                </div>
+
+                                <div class="auth-box" id="signup-box" role="tabpanel" aria-label="Sign up" hidden>
+                                    <h2 id="signup-title">Sign Up</h2>
+                                    <p>Join GearVault today</p>
+                                    <form id="signup-form">
+                                        <div class="form-group">
+                                            <label class="sr-only" for="signup-name">Full Name</label>
+                                            <span class="field-icon" aria-hidden="true"><svg viewBox="0 0 24 24" width="18" height="18"><circle cx="12" cy="8" r="4" fill="none" stroke="currentColor" stroke-width="1.8"/><path d="M4.5 20c.7-4 3.2-6 7.5-6s6.8 2 7.5 6" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg></span>
+                                            <input type="text" id="signup-name" placeholder="Full Name" required>
+                                        </div>
+                                        <div class="form-group">
+                                            <label class="sr-only" for="signup-email">Email Address</label>
+                                            <span class="field-icon" aria-hidden="true"><svg viewBox="0 0 24 24" width="18" height="18"><path d="M3 5.5h18v13H3zM3 6l9 7 9-7" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg></span>
+                                            <input type="email" id="signup-email" placeholder="Email Address" required>
+                                        </div>
+                                        <div class="form-group">
+                                            <label class="sr-only" for="signup-pass">Password</label>
+                                            <span class="field-icon" aria-hidden="true"><svg viewBox="0 0 24 24" width="18" height="18"><rect x="4.5" y="10" width="15" height="10" rx="2" fill="none" stroke="currentColor" stroke-width="1.8"/><path d="M7.5 10V7.5a4.5 4.5 0 0 1 9 0V10" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg></span>
+                                            <input type="password" id="signup-pass" placeholder="Password" required>
+                                        </div>
+                                        <button type="submit" class="primary-btn full-width">Sign Up</button>
+                                    </form>
+                                    <p class="auth-switch">Already have an account? <a href="#" id="to-login">Log in</a></p>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="landing-features" id="landing-features">
+                        <article class="feature-item">
+                            <span class="feature-icon" aria-hidden="true">⬡</span>
+                            <span><strong>Inventory Tracking</strong><small>Keep track of all your PC parts.</small></span>
+                        </article>
+                        <article class="feature-item">
+                            <span class="feature-icon" aria-hidden="true">⚒</span>
+                            <span><strong>Build Planning</strong><small>Plan your dream build.</small></span>
+                        </article>
+                        <article class="feature-item">
+                            <span class="feature-icon" aria-hidden="true">▥</span>
+                            <span><strong>Analytics</strong><small>See your stats and spending.</small></span>
+                        </article>
+                        <article class="feature-item">
+                            <span class="feature-icon" aria-hidden="true">♬</span>
+                            <span><strong>Audio Tools</strong><small>Calculate and optimize.</small></span>
+                        </article>
+                    </div>
+
+                    <div class="landing-bottom-line" id="landing-footer">
+                        <span>GEARVAULT</span><span>TRACK · ORGANIZE · UPGRADE</span>
+                    </div>
+                </div>
+            </section>
+
+        </main>
+    </div>
+
+    <!-- STATUS CHOICE MODAL -->
+    <div id="status-choice-modal" class="modal-overlay">
+        <div class="modal-content" style="max-width:400px;">
+            <div class="modal-header">
+                <h3>Add New Gear</h3>
+                <button id="close-status-choice-btn" class="icon-btn">&times;</button>
+            </div>
+            <div style="padding:20px; display:flex; flex-direction:column; gap:12px;">
+                <p style="color:var(--muted);">Choose where to add this gear:</p>
+                <button type="button" class="primary-btn full-width" id="choose-inventory-btn">Inventory</button>
+                <button type="button" class="secondary-btn full-width" id="choose-wishlist-btn">Wishlist</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- ADD/EDIT GEAR MODAL -->
+    <div id="gear-modal" class="modal-overlay">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3 id="modal-title">Add New Gear</h3>
+                <button id="close-modal-btn" class="icon-btn">&times;</button>
+            </div>
+            <form id="gear-form">
+                <input type="hidden" id="gear-id">
+                <div class="form-group">
+                    <label>Item Name</label>
+                    <input type="text" id="gear-name" required placeholder="e.g. Ryzen 7 5700X or Edifier MR3">
+                </div>
+                <div class="form-group">
+                    <label>Category</label>
+                    <select id="gear-category" required>
+                        <option value="">Select Category</option>
+                        <option value="CPU">CPU</option>
+                        <option value="GPU">GPU</option>
+                        <option value="Motherboard">Motherboard</option>
+                        <option value="RAM">RAM</option>
+                        <option value="PSU">PSU</option>
+                        <option value="Audio">Audio</option>
+                        <option value="Peripherals">Peripherals</option>
+                        <option value="Monitor">Monitor</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label>Price (₱)</label>
+                    <input type="number" id="gear-price" step="0.01" min="0" required placeholder="0.00">
+                </div>
+                <div class="form-group">
+                    <label>Condition</label>
+                    <select id="gear-condition" required>
+                        <option value="">Select Condition</option>
+                        <option value="Brand New">Brand New</option>
+                        <option value="Like New">Like New</option>
+                        <option value="Used">Used</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label for="gear-purchase-date">Purchase date (owned gear)</label>
+                    <input type="date" id="gear-purchase-date">
+                </div>
+                <div class="form-group">
+                    <label for="gear-warranty-months">Warranty length (months)</label>
+                    <input type="number" id="gear-warranty-months" min="1" max="240" step="1" placeholder="e.g. 24">
+                </div>
+                <div class="form-group">
+                    <label>Estimated Wattage (W, optional for PC parts)</label>
+                    <input type="number" id="gear-wattage" min="0" max="1500" placeholder="e.g. 65 or 170">
+                </div>
+                <div class="form-group">
+                    <label>Platform / Spec Tag (optional)</label>
+                    <select id="gear-platform">
+                        <option value="">None / General</option>
+                        <option value="AM4">AM4</option>
+                        <option value="AM5">AM5</option>
+                        <option value="LGA1700">LGA1700</option>
+                        <option value="DDR4">DDR4</option>
+                        <option value="DDR5">DDR5</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label>Description / Reason (Why I want/have this)</label>
+                    <textarea id="gear-desc" rows="2" placeholder="e.g. Needed for better audio mixing or upgrade path." style="width:100%; padding:8px; border-radius:4px; border:1px solid var(--border-color); background:var(--bg-color); color:var(--text-color);"></textarea>
+                </div>
+                <p class="form-hint gear-warranty-hint">Add both a purchase date and warranty length to see the expiry date and get a dashboard reminder. Warranty reminders apply to owned gear.</p>
+                <div class="form-group gear-image-group">
+                    <label>Gear Image (optional)</label>
+                    <input type="file" id="gear-image" accept="image/*">
+                    <div id="gear-image-preview" class="gear-image-preview" aria-label="Gear image preview">
+                        <span>No image selected</span>
+                    </div>
+                </div>
+                <div class="form-group">
+                    <label for="gear-status">Status</label>
+                    <select id="gear-status" required>
+                        <option value="">Select Status</option>
+                        <option value="Owned">Owned</option>
+                        <option value="Wishlist">Wishlist</option>
+                    </select>
+                </div>
+                <div class="modal-actions">
+                    <button type="button" id="cancel-modal-btn" class="secondary-btn">Cancel</button>
+                    <button type="submit" class="primary-btn">Add Gear</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- CONFIRMATION DIALOG -->
+    <div id="confirm-dialog" class="confirm-overlay" aria-hidden="true">
+        <div class="confirm-dialog" role="alertdialog" aria-modal="true" aria-labelledby="confirm-title" aria-describedby="confirm-message">
+            <h2 id="confirm-title">Confirm action</h2>
+            <p id="confirm-message"></p>
+            <div class="confirm-actions">
+                <button type="button" id="confirm-cancel" class="secondary-btn">Cancel</button>
+                <button type="button" id="confirm-accept" class="danger-btn">Confirm</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- CONTACT MODAL -->
+    <div id="contact-modal" class="modal-overlay">
+        <div class="modal-content" style="max-width:400px;">
+            <div class="modal-header">
+                <h3>Contact</h3>
+                <button id="close-contact-btn" class="icon-btn">&times;</button>
+            </div>
+            <div style="padding:20px;">
+                <p style="color:var(--muted); margin-bottom:8px;">You can reach me at:</p>
+                <p style="font-weight:700; word-break:break-all;">sorianoryanmaer@gmail.com</p>
+            </div>
+        </div>
+    </div>
+
+    <div id="toast-stack" class="toast-stack" aria-live="polite" aria-atomic="true"></div>
+
+    <script src="app.js"></script>
+</body>
+</html>

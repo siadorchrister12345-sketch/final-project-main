@@ -107,6 +107,7 @@
                         <div class="summary-stats">
                             <p>Owned Budget <strong id="summary-owned-budget">₱0.00</strong></p>
                             <p>Wishlist Total <strong id="summary-wishlist-total">₱0.00</strong></p>
+                            <p>Project Spend <strong id="summary-project-spend">₱0.00</strong></p>
                         </div>
                         <div class="upgrade-suggestion"><span aria-hidden="true">💡</span><p><strong>Upgrade suggestion</strong><small id="dash-compat-summary">Add your gear to get a personalized tip.</small></p><span aria-hidden="true">→</span></div>
                         <span class="sr-only" id="dash-psu-summary">0W / 650W</span>
@@ -142,6 +143,27 @@
                         <p class="care-reminders-help">Tasks due within 14 days and owned gear warranties expiring within 60 days.</p>
                         <div id="care-reminders-list" class="care-reminders-list">
                             <p class="empty-dashboard-message">Add a due date to a task or record a gear warranty to get reminders.</p>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="dashboard-widgets dashboard-project-overview">
+                    <div class="widget-box">
+                        <div class="widget-heading-row">
+                            <h3>Ongoing Projects</h3>
+                            <button type="button" class="view-all-btn" data-target="projects-view">Manage projects →</button>
+                        </div>
+                        <div id="dashboard-ongoing-projects" class="dashboard-project-list">
+                            <p class="empty-dashboard-message">Your active projects will appear here.</p>
+                        </div>
+                    </div>
+                    <div class="widget-box">
+                        <div class="widget-heading-row">
+                            <h3>Unfinished Tasks</h3>
+                            <button type="button" class="view-all-btn" data-target="projects-view">Manage tasks →</button>
+                        </div>
+                        <div id="dashboard-unfinished-tasks" class="dashboard-project-list">
+                            <p class="empty-dashboard-message">Your open tasks will appear here.</p>
                         </div>
                     </div>
                 </div>
@@ -272,6 +294,10 @@
                                 <label for="project-target-date-input">Target date (optional)</label>
                                 <input type="date" id="project-target-date-input">
                             </div>
+                            <label class="project-checklist-option">
+                                <input type="checkbox" id="project-checklist-enabled">
+                                Enable an optional project checklist
+                            </label>
                             <button type="submit" class="primary-btn">Create Project</button>
                         </form>
                         <h3 class="project-list-heading">Ongoing Projects</h3>
@@ -308,14 +334,21 @@
                                 <button type="button" id="save-psu-btn" class="secondary-btn">Update PSU</button>
                             </div>
                         </div>
-                        <p>Estimated Logged PC Draw: <strong id="psu-total-draw">0W</strong></p>
+                        <div class="form-group">
+                            <label for="wattage-project-select">Calculate from PC build project</label>
+                            <select id="wattage-project-select">
+                                <option value="inventory">Owned inventory</option>
+                            </select>
+                        </div>
+                        <p>Estimated PC Draw: <strong id="psu-total-draw">0W</strong></p>
                         <p>Remaining Safe Headroom: <strong id="psu-headroom">650W</strong></p>
+                        <p id="psu-source-summary">Source: Owned inventory</p>
                         <p>Safety Status: <span id="psu-status-badge" class="status-pill safe">Safe</span></p>
                         <div class="progress-track">
                             <div id="psu-progress-fill" class="progress-fill" style="width: 0%;"></div>
                         </div>
                         <p style="font-size: 0.8rem; color: #7f8c8d; margin-top: 8px;">
-                            Estimate only: enter owned CPU, GPU, motherboard, and RAM wattages. Wishlist items, the PSU rating, monitors, peripherals, and audio gear are not counted.
+                            Select a PC build project or use owned inventory. Project estimates use each planned component's wattage and quantity; monitors, peripherals, and audio gear are not counted.
                         </p>
                     </div>
 
@@ -323,8 +356,15 @@
                     <div class="widget-box">
                         <h3>PC Component Compatibility Checker</h3>
                         <p style="font-size: 0.85rem; color: #7f8c8d; margin-bottom: 10px;">
-                            Checks owned CPU, motherboard, and RAM tags for basic conflicts. Add component wattages for a useful power estimate.
+                            Select a PC build project or use owned inventory. Component type and platform tags are used for basic CPU, motherboard, and RAM checks.
                         </p>
+                        <div class="form-group">
+                            <label for="compatibility-project-select">Check a PC build project</label>
+                            <select id="compatibility-project-select">
+                                <option value="inventory">Owned inventory</option>
+                            </select>
+                        </div>
+                        <p id="compatibility-source-summary" class="build-tool-source">Source: Owned inventory</p>
                         <ul id="compat-results-list" class="activity-list">
                             <!-- Compatibility checks injected here -->
                         </ul>
@@ -432,6 +472,7 @@
                         <p>Wishlist Total: <span id="analytics-wishlist-total">₱0.00</span></p>
                         <p><strong>Total Combined Value: <span id="analytics-total-value">₱0.00</span></strong></p>
                         <p>Average per Item: <span id="analytics-avg-per-item">₱0.00</span></p>
+                        <p>Project spend (materials marked Have): <span id="analytics-project-spend">₱0.00</span></p>
                         <p>Most Expensive: <span id="analytics-max-item">—</span></p>
                     </div>
                     <div class="widget-box">

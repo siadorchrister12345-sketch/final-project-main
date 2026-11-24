@@ -146,10 +146,13 @@ document.addEventListener('DOMContentLoaded', () => {
     const projectDescriptionInput = document.getElementById('project-description-input');
     const projectBudgetInput = document.getElementById('project-budget-input');
     const projectTargetDateInput = document.getElementById('project-target-date-input');
+    const projectChecklistEnabledInput = document.getElementById('project-checklist-enabled');
 
     // Build & Audio Tools DOM Elements
     const psuCapacityInput = document.getElementById('psu-capacity-input');
     const savePsuBtn = document.getElementById('save-psu-btn');
+    const wattageProjectSelect = document.getElementById('wattage-project-select');
+    const compatibilityProjectSelect = document.getElementById('compatibility-project-select');
     const enclosureForm = document.getElementById('enclosure-form');
     const enclosureResult = document.getElementById('enclosure-result');
     const portTuningForm = document.getElementById('port-tuning-form');
@@ -1008,6 +1011,8 @@ document.addEventListener('DOMContentLoaded', () => {
             budget,
             targetDate,
             materials: [],
+            checklistEnabled: projectChecklistEnabledInput.checked,
+            checklist: [],
             status: 'Ongoing'
         });
         logActivity(`Started new project: ${name}`);
@@ -1019,25 +1024,46 @@ document.addEventListener('DOMContentLoaded', () => {
     const projectsView = document.getElementById('projects-view');
     projectsView.addEventListener('change', event => {
         const sourceSelect = event.target.closest('.project-material-source');
-        if (!sourceSelect) return;
-        const form = sourceSelect.closest('.project-material-form');
-        if (!form) return;
-        const selectedSource = sourceSelect.value;
-        const gearItem = selectedSource.startsWith('gear:')
-            ? currentUser.items.find(item => String(item.id) === selectedSource.slice(5))
-            : null;
-        const nameInput = form.querySelector('[name="materialName"]');
-        const costInput = form.querySelector('[name="unitCost"]');
-        const ownedInput = form.querySelector('[name="ownedQuantity"]');
-        if (gearItem) {
-            nameInput.value = gearItem.name;
-            costInput.value = Number(gearItem.price) || 0;
-            ownedInput.value = gearItem.status === 'Owned' ? 1 : 0;
-        } else if (selectedSource === 'custom') {
-            nameInput.value = '';
-            costInput.value = 0;
-            ownedInput.value = 0;
-            nameInput.focus();
+        if (sourceSelect) {
+            const form = sourceSelect.closest('.project-material-form');
+            if (!form) return;
+            const selectedSource = sourceSelect.value;
+            const gearItem = selectedSource.startsWith('gear:')
+                ? currentUser.items.find(item => String(item.id) === selectedSource.slice(5))
+                : null;
+            const nameInput = form.querySelector('[name="materialName"]');
+            const costInput = form.querySelector('[name="unitCost"]');
+            const ownedInput = form.querySelector('[name="ownedQuantity"]');
+            const wattageInput = form.querySelector('[name="wattage"]');
+            const categoryInput = form.querySelector('[name="category"]');
+            const platformInput = form.querySelector('[name="platform"]');
+            if (gearItem) {
+                nameInput.value = gearItem.name;
+                costInput.value = Number(gearItem.price) || 0;
+                ownedInput.value = gearItem.status === 'Owned' ? 1 : 0;
+                wattageInput.value = Number(gearItem.wattage) || 0;
+                categoryInput.value = gearItem.category;
+                platformInput.value = gearItem.platform || '';
+            } else if (selectedSource === 'custom') {
+                nameInput.value = '';
+                costInput.value = 0;
+                ownedInput.value = 0;
+                wattageInput.value = 0;
+                categoryInput.value = '';
+                platformInput.value = '';
+                nameInput.focus();
+            }
+            return;
+        }
+
+        const checklistInput = event.target.closest('.project-checklist-item');
+        if (checklistInput) {
+            const project = currentUser.projects.find(item => String(item.id) === checklistInput.dataset.projectId);
+            const checklistItem = project && (project.checklist || []).find(item => String(item.id) === checklistInput.dataset.itemId);
+            if (!checklistItem) return;
+            checklistItem.completed = checklistInput.checked;
+            saveAndRefresh();
+            return;
         }
     });
 
@@ -1055,10 +1081,14 @@ document.addEventListener('DOMContentLoaded', () => {
             const neededQuantity = Number(materialForm.querySelector('[name="neededQuantity"]').value);
             const ownedQuantity = Number(materialForm.querySelector('[name="ownedQuantity"]').value);
             const unitCost = Number(materialForm.querySelector('[name="unitCost"]').value);
+            const wattage = Number(materialForm.querySelector('[name="wattage"]').value);
+            const category = materialForm.querySelector('[name="category"]').value;
+            const platform = materialForm.querySelector('[name="platform"]').value.trim();
             if (!name || !Number.isInteger(neededQuantity) || neededQuantity < 1 || neededQuantity > 10000
                 || !Number.isInteger(ownedQuantity) || ownedQuantity < 0 || ownedQuantity > 10000
-                || !Number.isFinite(unitCost) || unitCost < 0) {
-                notify('Enter a material name, whole-number quantities, and a valid unit cost.');
+                || !Number.isFinite(unitCost) || unitCost < 0
+                || !Number.isFinite(wattage) || wattage < 0 || wattage > 1500) {
+                notify('Enter a material name, valid quantities and unit cost, and wattage from 0 to 1500.');
                 return;
             }
             if (source.startsWith('gear:') && !gearItem) {
@@ -1072,6 +1102,9 @@ document.addEventListener('DOMContentLoaded', () => {
                 neededQuantity,
                 ownedQuantity,
                 unitCost,
+                wattage,
+                category,
+                platform,
                 sourceGearId: gearItem ? gearItem.id : ''
             });
             logActivity(`Added ${name} to project ${project.name}`);
@@ -1100,6 +1133,21 @@ document.addEventListener('DOMContentLoaded', () => {
             return;
         }
 
+        const checklistForm = event.target.closest('.project-checklist-form');
+        if (checklistForm) {
+            event.preventDefault();
+            const project = currentUser.projects.find(item => String(item.id) === checklistForm.dataset.projectId);
+            const textInput = checklistForm.querySelector('[name="checklistItem"]');
+            const text = textInput.value.trim();
+            if (!project || !text) return;
+            if (!Array.isArray(project.checklist)) project.checklist = [];
+            project.checklist.push({ id: Date.now(), text, completed: false });
+            project.checklistEnabled = true;
+            saveAndRefresh();
+            notify('Checklist item added');
+            return;
+        }
+
         const detailsForm = event.target.closest('.project-edit-form');
         if (!detailsForm) return;
         event.preventDefault();
@@ -1116,7 +1164,8 @@ document.addEventListener('DOMContentLoaded', () => {
             notify('Enter a project name, valid budget, and valid target date.');
             return;
         }
-        Object.assign(project, { name, projectType, description, budget, targetDate });
+        const checklistEnabled = detailsForm.querySelector('[name="checklistEnabled"]').checked;
+        Object.assign(project, { name, projectType, description, budget, targetDate, checklistEnabled });
         logActivity(`Updated project details: ${name}`);
         saveAndRefresh();
         notify('Project details updated');
@@ -1178,6 +1227,8 @@ document.addEventListener('DOMContentLoaded', () => {
         evaluateBuildTools();
         notify(`PSU rating set to ${cap}W`);
     });
+    wattageProjectSelect.addEventListener('change', () => evaluateBuildTools());
+    compatibilityProjectSelect.addEventListener('change', () => evaluateBuildTools());
 
     // DIY Audio Enclosure Volume Estimator Handler
     enclosureForm.addEventListener('submit', (e) => {
@@ -1452,7 +1503,12 @@ document.addEventListener('DOMContentLoaded', () => {
                 && Number.isInteger(material.neededQuantity) && material.neededQuantity >= 1 && material.neededQuantity <= 10000
                 && Number.isInteger(material.ownedQuantity) && material.ownedQuantity >= 0 && material.ownedQuantity <= 10000
                 && Number.isFinite(Number(material.unitCost)) && Number(material.unitCost) >= 0
+                && Number.isFinite(Number(material.wattage || 0)) && Number(material.wattage || 0) >= 0 && Number(material.wattage || 0) <= 1500
+                && (material.category === undefined || ['CPU', 'GPU', 'Motherboard', 'RAM', 'PSU', 'Audio', 'Peripherals', 'Monitor', ''].includes(material.category))
+                && (material.platform === undefined || typeof material.platform === 'string')
                 && (material.sourceGearId === undefined || material.sourceGearId === '' || validId(material.sourceGearId));
+            const validChecklistItem = item => item && validId(item.id)
+                && typeof item.text === 'string' && typeof item.completed === 'boolean';
             const validProject = project => project && validId(project.id)
                 && typeof project.name === 'string' && ['Ongoing', 'Completed'].includes(project.status)
                 && (project.projectType === undefined || ['PC Build', 'PC Upgrade', 'Repair', 'Speaker / Audio Build', 'Other'].includes(project.projectType))
@@ -1460,6 +1516,8 @@ document.addEventListener('DOMContentLoaded', () => {
                 && (project.budget === undefined || project.budget === null
                     || (Number.isFinite(Number(project.budget)) && Number(project.budget) >= 0))
                 && (project.targetDate === undefined || validOptionalDate(project.targetDate))
+                && (project.checklistEnabled === undefined || typeof project.checklistEnabled === 'boolean')
+                && (project.checklist === undefined || (Array.isArray(project.checklist) && project.checklist.every(validChecklistItem)))
                 && (project.materials === undefined
                     || (Array.isArray(project.materials) && project.materials.every(validProjectMaterial)));
             const validBackup = backup && backup.format === 'gearvault-backup' && backup.version === 1
@@ -1556,19 +1614,38 @@ document.addEventListener('DOMContentLoaded', () => {
     // Helper: Evaluate PSU Wattage & Compatibility Rules
     function evaluateBuildTools(gearItems = currentUser.items || []) {
         const psuCap = currentUser.psuCapacity || 650;
-        const ownedItems = gearItems.filter(i => i.status === 'Owned');
         const powerCategories = ['CPU', 'GPU', 'Motherboard', 'RAM'];
-        const poweredComponents = ownedItems.filter(item => powerCategories.includes(item.category));
+        const projects = currentUser.projects || [];
+        const wattageProject = wattageProjectSelect.value === 'inventory' ? null
+            : projects.find(project => String(project.id) === wattageProjectSelect.value
+                && (!project.projectType || project.projectType === 'PC Build'));
+        const compatibilityProject = compatibilityProjectSelect.value === 'inventory' ? null
+            : projects.find(project => String(project.id) === compatibilityProjectSelect.value
+                && (!project.projectType || project.projectType === 'PC Build'));
+        const wattageSourceItems = wattageProject
+            ? (wattageProject.materials || []).filter(item => powerCategories.includes(item.category))
+            : gearItems.filter(item => item.status === 'Owned' && powerCategories.includes(item.category));
+        const poweredComponents = wattageSourceItems;
         const wattageItems = poweredComponents.filter(item => Number(item.wattage) > 0);
-        const totalDraw = wattageItems.reduce((sum, item) => sum + Number(item.wattage), 0);
+        const totalDraw = wattageItems.reduce((sum, item) => sum + Number(item.wattage) * (Number(item.neededQuantity) || 1), 0);
         const headroom = psuCap - totalDraw;
         const ratio = psuCap > 0 ? (totalDraw / psuCap) * 100 : 0;
         const hasIncompletePowerData = wattageItems.length < poweredComponents.length;
+        const compatibilityItems = compatibilityProject
+            ? compatibilityProject.materials || []
+            : gearItems.filter(item => item.status === 'Owned');
+        const compatibilityPoweredComponents = compatibilityItems.filter(item => powerCategories.includes(item.category));
+        const compatibilityWattageItems = compatibilityPoweredComponents.filter(item => Number(item.wattage) > 0);
+        const compatibilityTotalDraw = compatibilityWattageItems.reduce((sum, item) =>
+            sum + Number(item.wattage) * (Number(item.neededQuantity) || 1), 0);
+        const compatibilityHasIncompletePowerData = compatibilityWattageItems.length < compatibilityPoweredComponents.length;
 
         // Update PSU UI
         document.getElementById('psu-total-draw').textContent = `${totalDraw}W`;
         document.getElementById('psu-headroom').textContent = `${headroom}W`;
         document.getElementById('dash-psu-summary').textContent = `${totalDraw}W / ${psuCap}W`;
+        document.getElementById('psu-source-summary').textContent = wattageProject
+            ? `Source: ${wattageProject.name}` : 'Source: Owned inventory';
 
         const badge = document.getElementById('psu-status-badge');
         const fill = document.getElementById('psu-progress-fill');
@@ -1600,9 +1677,9 @@ document.addEventListener('DOMContentLoaded', () => {
         const compatList = document.getElementById('compat-results-list');
         const checks = [];
 
-        const cpus = ownedItems.filter(i => i.category === 'CPU' && i.platform);
-        const mobos = ownedItems.filter(i => i.category === 'Motherboard' && i.platform);
-        const rams = ownedItems.filter(i => i.category === 'RAM' && i.platform);
+        const cpus = compatibilityItems.filter(i => i.category === 'CPU' && i.platform);
+        const mobos = compatibilityItems.filter(i => i.category === 'Motherboard' && i.platform);
+        const rams = compatibilityItems.filter(i => i.category === 'RAM' && i.platform);
 
         if (cpus.length === 0 && mobos.length === 0 && rams.length === 0) {
             checks.push('Add owned CPU, motherboard, or RAM items with platform tags to run compatibility checks.');
@@ -1629,22 +1706,25 @@ document.addEventListener('DOMContentLoaded', () => {
                 }
             }
 
-            if (poweredComponents.length === 0) {
-                checks.push('Add owned CPU, GPU, motherboard, or RAM wattage to estimate PSU headroom.');
-            } else if (wattageItems.length === 0) {
-                checks.push('Enter estimated wattage for owned CPU, GPU, motherboard, and RAM items to check PSU headroom.');
-            } else if (totalDraw > psuCap) {
-                checks.push(`⚠️ Owned PC draw (${totalDraw}W) exceeds PSU capacity (${psuCap}W).`);
-            } else if (hasIncompletePowerData) {
-                checks.push('Power estimate is partial. Add wattage for every owned CPU, GPU, motherboard, and RAM item.');
+            if (compatibilityPoweredComponents.length === 0) {
+                checks.push('Add CPU, GPU, motherboard, or RAM components to estimate PSU headroom.');
+            } else if (compatibilityWattageItems.length === 0) {
+                checks.push('Enter wattage for CPU, GPU, motherboard, and RAM components to check PSU headroom.');
+            } else if (compatibilityTotalDraw > psuCap) {
+                checks.push(`⚠️ PC draw (${compatibilityTotalDraw}W) exceeds PSU capacity (${psuCap}W).`);
+            } else if (compatibilityHasIncompletePowerData) {
+                checks.push('Power estimate is partial. Add wattage for every selected power component.');
             } else {
-                checks.push(`✅ PSU capacity (${psuCap}W) covers entered component wattage (${totalDraw}W).`);
+                checks.push(`✅ PSU capacity (${psuCap}W) covers entered component wattage (${compatibilityTotalDraw}W).`);
             }
         }
 
         compatList.innerHTML = checks.map(msg => `<li>${escapeHtml(msg)}</li>`).join('');
+        document.getElementById('compatibility-source-summary').textContent = compatibilityProject
+            ? `Project: ${compatibilityProject.name}` : 'Source: Owned inventory';
         const hasCpuMoboCheck = cpus.length > 0 && mobos.length > 0;
-        const hasPowerEstimate = poweredComponents.length > 0 && wattageItems.length > 0 && !hasIncompletePowerData;
+        const hasPowerEstimate = compatibilityPoweredComponents.length > 0
+            && compatibilityWattageItems.length > 0 && !compatibilityHasIncompletePowerData;
         document.getElementById('dash-compat-summary').textContent = checks.some(c => c.startsWith('⚠️'))
             ? 'Review build warnings'
             : !hasCpuMoboCheck
@@ -1894,13 +1974,20 @@ document.addEventListener('DOMContentLoaded', () => {
         const projectTypeOptions = (selectedType = 'PC Build') => projectTypes.map(type =>
             `<option value="${escapeHtml(type)}" ${type === selectedType ? 'selected' : ''}>${escapeHtml(type)}</option>`
         ).join('');
+        const materialCategories = ['', 'CPU', 'GPU', 'Motherboard', 'RAM', 'PSU', 'Audio', 'Peripherals', 'Monitor'];
+        const materialCategoryOptions = (selectedCategory = '') => materialCategories.map(category =>
+            `<option value="${escapeHtml(category)}" ${category === selectedCategory ? 'selected' : ''}>${escapeHtml(category || 'Not specified')}</option>`
+        ).join('');
         const projectGearOptions = (currentUser.items || []).map(item =>
             `<option value="gear:${escapeHtml(item.id)}">${escapeHtml(item.name)} · ${escapeHtml(item.category)} · ${item.status === 'Owned' ? 'Have' : 'Wishlist'}</option>`
         ).join('');
         const formatMoney = amount => `₱${Number(amount || 0).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+        const projectSpend = projects.reduce((sum, project) => sum + (project.materials || []).reduce((materialTotal, material) =>
+            materialTotal + (Number(material.ownedQuantity) || 0) * (Number(material.unitCost) || 0), 0), 0);
 
         function renderProjectCard(project, isCompleted) {
             const materials = Array.isArray(project.materials) ? project.materials : [];
+            const checklist = Array.isArray(project.checklist) ? project.checklist : [];
             const neededUnits = materials.reduce((sum, material) => sum + (Number(material.neededQuantity) || 0), 0);
             const ownedUnits = materials.reduce((sum, material) => sum
                 + Math.min(Number(material.ownedQuantity) || 0, Number(material.neededQuantity) || 0), 0);
@@ -1910,6 +1997,10 @@ document.addEventListener('DOMContentLoaded', () => {
             const totalMaterialCost = materials.reduce((sum, material) => sum
                 + (Number(material.neededQuantity) || 0) * (Number(material.unitCost) || 0), 0);
             const materialProgress = neededUnits ? Math.round((ownedUnits / neededUnits) * 100) : 0;
+            const completedChecklistItems = checklist.filter(item => item.completed).length;
+            const checklistProgress = checklist.length ? Math.round((completedChecklistItems / checklist.length) * 100) : 0;
+            const checklistEnabled = project.checklistEnabled === undefined
+                ? checklist.length > 0 : project.checklistEnabled;
             const budget = project.budget === null || project.budget === undefined ? null : Number(project.budget);
             const overBudget = budget !== null && toBuyCost > budget;
             const targetDays = project.targetDate ? dateDifferenceInDays(project.targetDate) : null;
@@ -1924,11 +2015,14 @@ document.addEventListener('DOMContentLoaded', () => {
                 const remaining = Math.max(needed - owned, 0);
                 const remainingCost = remaining * (Number(material.unitCost) || 0);
                 const materialCost = needed * (Number(material.unitCost) || 0);
+                const materialSpecs = [material.category, material.platform, Number(material.wattage) > 0 ? `${material.wattage}W` : '']
+                    .filter(Boolean).join(' · ');
                 return `
                     <article class="project-material-row">
                         <div class="project-material-info">
                             <strong>${escapeHtml(material.name)}</strong>
                             <small>${remaining ? `Buy ${remaining} · ${formatMoney(remainingCost)}` : `Have enough · ${owned} of ${needed} ready`}</small>
+                            ${materialSpecs ? `<small>${escapeHtml(materialSpecs)}</small>` : ''}
                         </div>
                         ${isCompleted ? `
                             <span class="project-material-archive">Need ${needed} · Had ${owned} · ${formatMoney(materialCost)}</span>
@@ -1963,6 +2057,10 @@ document.addEventListener('DOMContentLoaded', () => {
                         <label class="form-group">Target date
                             <input type="date" name="targetDate" value="${escapeHtml(project.targetDate || '')}">
                         </label>
+                        <label class="project-checklist-option">
+                            <input type="checkbox" name="checklistEnabled" ${checklistEnabled ? 'checked' : ''}>
+                            Enable project checklist
+                        </label>
                         <button type="submit" class="secondary-btn">Save project brief</button>
                     </form>
                 </details>`;
@@ -1975,11 +2073,37 @@ document.addEventListener('DOMContentLoaded', () => {
                         ${projectGearOptions}
                     </select>
                     <input type="text" name="materialName" required placeholder="Material or part name">
+                    <label>Component type <select name="category">${materialCategoryOptions()}</select></label>
+                    <label>Platform tag <input type="text" name="platform" placeholder="e.g. AM5 or DDR5"></label>
                     <label>Need <input type="number" name="neededQuantity" min="1" max="10000" step="1" value="1" required></label>
                     <label>Have <input type="number" name="ownedQuantity" min="0" max="10000" step="1" value="0" required></label>
                     <label>Unit cost ₱ <input type="number" name="unitCost" min="0" step="0.01" value="0" required></label>
+                    <label>Wattage W <input type="number" name="wattage" min="0" max="1500" step="0.1" value="0"></label>
                     <button type="submit" class="primary-btn">Add material</button>
                 </form>`;
+
+            const checklistSection = checklistEnabled ? `
+                <section class="project-checklist">
+                    <div class="project-checklist-heading">
+                        <h5>Project checklist</h5>
+                        <span>${completedChecklistItems} / ${checklist.length} complete</span>
+                    </div>
+                    <div class="project-checklist-progress" role="meter" aria-label="Project checklist progress" aria-valuemin="0" aria-valuemax="100" aria-valuenow="${checklistProgress}">
+                        <span style="width:${checklistProgress}%"></span>
+                    </div>
+                    ${checklist.length ? `<ul class="project-checklist-items">${checklist.map(item => `
+                        <li>
+                            <label class="${item.completed ? 'is-completed' : ''}">
+                                <input type="checkbox" class="project-checklist-item" data-project-id="${projectId}" data-item-id="${escapeHtml(item.id)}" ${item.completed ? 'checked' : ''} ${isCompleted ? 'disabled' : ''}>
+                                <span>${escapeHtml(item.text)}</span>
+                            </label>
+                        </li>`).join('')}</ul>` : '<p class="project-empty-materials">Add checklist items to track project progress.</p>'}
+                    ${isCompleted ? '' : `<form class="project-checklist-form" data-project-id="${projectId}">
+                        <label class="sr-only" for="checklist-${projectId}">New checklist item</label>
+                        <input id="checklist-${projectId}" type="text" name="checklistItem" placeholder="Add a project step" required>
+                        <button type="submit" class="secondary-btn">Add step</button>
+                    </form>`}
+                </section>` : '';
 
             return `
                 <article class="project-card ${isCompleted ? 'is-completed' : ''}">
@@ -1999,8 +2123,11 @@ document.addEventListener('DOMContentLoaded', () => {
                         <span>Budget <strong>${budget === null ? 'Not set' : formatMoney(budget)}</strong></span>
                         <span>Materials covered <strong>${ownedUnits} / ${neededUnits}</strong></span>
                         <span class="${overBudget ? 'is-over-budget' : ''}">To buy <strong>${formatMoney(toBuyCost)}</strong></span>
+                        <span>Project spend <strong>${formatMoney(materials.reduce((sum, material) =>
+                            sum + (Number(material.ownedQuantity) || 0) * (Number(material.unitCost) || 0), 0))}</strong></span>
                     </div>
                     ${neededUnits ? `<div class="project-material-progress" role="meter" aria-label="Materials ready" aria-valuemin="0" aria-valuemax="100" aria-valuenow="${materialProgress}"><span style="width:${materialProgress}%"></span></div>` : ''}
+                    ${checklistSection}
                     ${overBudget ? '<p class="project-budget-warning">Estimated purchases exceed this project budget.</p>' : ''}
                     ${editDetails}
                     <section class="project-materials">
@@ -2020,6 +2147,42 @@ document.addEventListener('DOMContentLoaded', () => {
         completedDiv.innerHTML = completedProj.length
             ? completedProj.map(project => renderProjectCard(project, true)).join('')
             : '<p>No completed projects yet.</p>';
+
+        const dashboardProjects = document.getElementById('dashboard-ongoing-projects');
+        dashboardProjects.innerHTML = ongoingProj.length
+            ? ongoingProj.slice(0, 5).map(project => {
+                const checklist = Array.isArray(project.checklist) ? project.checklist : [];
+                const checklistProgress = checklist.length
+                    ? `${checklist.filter(item => item.completed).length} / ${checklist.length} checklist steps`
+                    : `${(project.materials || []).length} material line${(project.materials || []).length === 1 ? '' : 's'}`;
+                return `<div class="dashboard-project-item">
+                    <span><strong>${escapeHtml(project.name)}</strong><small>${escapeHtml(project.projectType || 'PC Build')} · ${escapeHtml(checklistProgress)}</small></span>
+                    <span class="status-pill warn">Ongoing</span>
+                </div>`;
+            }).join('')
+            : '<p class="empty-dashboard-message">No ongoing projects. Create a project to see it here.</p>';
+
+        const dashboardTasks = document.getElementById('dashboard-unfinished-tasks');
+        const unfinishedTasks = tasks.filter(task => !task.completed)
+            .sort((a, b) => (a.dueDate || '9999-12-31').localeCompare(b.dueDate || '9999-12-31'));
+        dashboardTasks.innerHTML = unfinishedTasks.length
+            ? unfinishedTasks.slice(0, 5).map(task => `
+                <div class="dashboard-project-item">
+                    <span><strong>${escapeHtml(task.text)}</strong><small>${parseDateOnly(task.dueDate)
+                        ? `Due ${escapeHtml(formatDateOnly(task.dueDate))}` : 'No due date'}</small></span>
+                    <span class="status-pill warn">Open</span>
+                </div>`).join('')
+            : '<p class="empty-dashboard-message">All tasks are complete. Add tasks in Projects &amp; Tasks.</p>';
+
+        const buildProjects = projects.filter(project => !project.projectType || project.projectType === 'PC Build');
+        const refreshProjectSelector = (select, selectedValue) => {
+            select.innerHTML = '<option value="inventory">Owned inventory</option>' + buildProjects.map(project =>
+                `<option value="${escapeHtml(project.id)}">${escapeHtml(project.name)} · ${escapeHtml(project.status)}</option>`
+            ).join('');
+            select.value = buildProjects.some(project => String(project.id) === selectedValue) ? selectedValue : 'inventory';
+        };
+        refreshProjectSelector(wattageProjectSelect, wattageProjectSelect.value);
+        refreshProjectSelector(compatibilityProjectSelect, compatibilityProjectSelect.value);
 
         // 5. Dashboard featured catalog, recent gear, and wishlist progress
         if (featuredCard) {
@@ -2131,6 +2294,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
         document.getElementById('summary-owned-budget').textContent = `₱${ownedBudget.toLocaleString(undefined, { minimumFractionDigits: 2 })}`;
         document.getElementById('summary-wishlist-total').textContent = `₱${wishlistTotal.toLocaleString(undefined, { minimumFractionDigits: 2 })}`;
+        document.getElementById('summary-project-spend').textContent = formatMoney(projectSpend);
 
         const avgPrice = totalItems ? totalValue / totalItems : 0;
         const maxItem = gearItems.reduce((max, item) => (!max || item.price > max.price) ? item : max, null);
@@ -2143,6 +2307,7 @@ document.addEventListener('DOMContentLoaded', () => {
         document.getElementById('analytics-wishlist-total').textContent = `₱${wishlistTotal.toLocaleString(undefined, { minimumFractionDigits: 2 })}`;
         document.getElementById('analytics-total-value').textContent = `₱${totalValue.toLocaleString(undefined, { minimumFractionDigits: 2 })}`;
         document.getElementById('analytics-avg-per-item').textContent = `₱${avgPrice.toLocaleString(undefined, { minimumFractionDigits: 2 })}`;
+        document.getElementById('analytics-project-spend').textContent = formatMoney(projectSpend);
         document.getElementById('analytics-max-item').textContent = maxItem ? `${maxItem.name} (₱${Number(maxItem.price).toLocaleString()})` : '—';
 
         // Ownership breakdown
